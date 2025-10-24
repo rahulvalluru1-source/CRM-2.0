@@ -1,0 +1,239 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// This is the Prisma schema for the CRM system
+// It includes user authentication with roles, customer management, ticketing system,
+// attendance tracking, visit management, GPS tracking, and notifications
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  name            String?
+  phone           String?
+  department      String?
+  role            UserRole  @default(EMPLOYEE)
+  designation     String?
+  avatar          String?
+  signature       String?
+  address         String?
+  city            String?
+  region          String?
+  employeeId      String?   @unique
+  joiningDate     DateTime?
+  password        String?
+  isActive        Boolean   @default(true)
+  lastLogin       DateTime?
+  lastActive      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  assignedTickets  Ticket[]
+  createdCustomers Customer[]
+  attendance       Attendance[]
+  visits           Visit[]
+  tracking         Tracking[]
+  notifications    Notification[]
+  accounts         Account[]
+  sessions         Session[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Customer {
+  id          String   @id @default(cuid())
+  name        String
+  company     String?
+  licenseNo   String?  @unique
+  phone       String?
+  email       String?
+  region      String?
+  addedBy     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  tickets     Ticket[]
+  visits      Visit[]
+  creator     User     @relation(fields: [addedBy], references: [id])
+
+  @@map("customers")
+}
+
+model Ticket {
+  id          String       @id @default(cuid())
+  ticketId    String       @unique
+  customerId  String
+  subject     TicketSubject
+  description String?
+  status      TicketStatus @default(PENDING)
+  priority    Priority     @default(LOW)
+  assignedTo  String?
+  transferTo  String?
+  source      String?
+  resolution  String?
+  createdBy   String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  customer    Customer     @relation(fields: [customerId], references: [id])
+  assignedUser User?        @relation(fields: [assignedTo], references: [id])
+
+  @@map("tickets")
+}
+
+model Attendance {
+  id            String    @id @default(cuid())
+  userId        String
+  date          DateTime  @default(now())
+  checkInTime   DateTime?
+  checkOutTime  DateTime?
+  checkInLocation String?
+  checkOutLocation String?
+  totalHours    Float?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date])
+  @@map("attendance")
+}
+
+model Visit {
+  id            String   @id @default(cuid())
+  userId        String
+  customerId    String?
+  customerName  String
+  summary       String?
+  selfieUrl     String?
+  signatureUrl  String?
+  rating        Int?
+  coordinates   String?
+  timestamp     DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  // Relations
+  user          User     @relation(fields: [userId], references: [id])
+  customer      Customer? @relation(fields: [customerId], references: [id])
+
+  @@map("visits")
+}
+
+model Tracking {
+  id             String   @id @default(cuid())
+  userId         String
+  timestamp      DateTime @default(now())
+  latitude       Float
+  longitude      Float
+  speed          Float?
+  battery        Int?
+  isMockLocation Boolean  @default(false)
+
+  // Relations
+  user           User     @relation(fields: [userId], references: [id])
+
+  @@map("tracking")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  message   String
+  type      NotificationType
+  timestamp DateTime         @default(now())
+  status    NotificationStatus @default(UNREAD)
+  createdAt DateTime         @default(now())
+
+  // Relations
+  user      User             @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+enum UserRole {
+  ADMIN
+  EMPLOYEE
+}
+
+enum TicketSubject {
+  SUPPORT_REQUEST
+  FIELD_TASK
+  INSTALLATION
+  MAINTENANCE
+  COMPLAINT
+  INQUIRY
+}
+
+enum TicketStatus {
+  PENDING
+  OPEN
+  CLOSED
+  ESCALATED
+}
+
+enum Priority {
+  HIGH
+  LOW
+}
+
+enum NotificationType {
+  IDLE_ALERT
+  FAKE_GPS
+  CHECK_IN_REMINDER
+  CHECK_OUT_REMINDER
+  TICKET_ASSIGNED
+  TICKET_UPDATED
+  CUSTOMER_ADDED
+  CUSTOMER_MODIFIED
+  ADMIN_BROADCAST
+}
+
+enum NotificationStatus {
+  READ
+  UNREAD
+}
