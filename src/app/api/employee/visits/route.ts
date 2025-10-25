@@ -3,6 +3,30 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 
+// Define the Visit type based on our Prisma schema
+type Visit = {
+  id: string;
+  userId: string;
+  customerId: string;
+  customerName: string;
+  visitType: string;
+  summary: string | null;
+  selfieUrl: string | null;
+  signatureUrl: string | null;
+  rating: number | null;
+  coordinates: string | null;
+  timestamp: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  customer?: {
+    id: string;
+    name: string;
+    email: string | null;
+    phone: string | null;
+    company: string | null;
+  } | null;
+};
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -31,6 +55,7 @@ export async function GET() {
 
     // Transform records to match frontend expectations
     const formattedVisits = visits.map(visit => {
+      const typedVisit = visit as unknown as Visit;
       let status: 'pending' | 'in_progress' | 'completed' = 'pending';
       
       if (visit.timestamp) {
@@ -45,12 +70,12 @@ export async function GET() {
       }
 
       return {
-        id: visit.id,
-        customerName: visit.customer?.name || 'Unknown Customer',
-        customerEmail: visit.customer?.email,
-        customerPhone: visit.customer?.phone,
-        customerCompany: visit.customer?.company,
-        visitType: visit.summary || 'General Visit', // Using summary as visit type for now
+        id: typedVisit.id,
+        customerName: typedVisit.customerName,
+        customerEmail: typedVisit.customer?.email,
+        customerPhone: typedVisit.customer?.phone,
+        customerCompany: typedVisit.customer?.company,
+        visitType: typedVisit.visitType,
         scheduledTime: visit.timestamp?.toISOString() || visit.createdAt.toISOString(),
         status,
         location: visit.coordinates || 'Not specified',
@@ -119,32 +144,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create new visit
-    const visit = await db.visit.create({
-      data: {
-        userId: user.id,
-        customerId: customerId,
-        customerName: customer.name,
-        summary: `${visitType} - ${notes || ''}`,
-        coordinates: location,
-        timestamp: new Date(scheduledTime),
-        createdAt: new Date()
-      },
-      include: {
-        customer: true
-      }
-    });
-
-    return NextResponse.json({
-      id: visit.id,
-      customerName: visit.customer?.name || 'Unknown Customer',
+      // Create new visit
+    const visitData = {
+      userId: user.id,
+      customerId: customerId,
+      customerName: customer.name,
       visitType: visitType,
-      scheduledTime: visit.timestamp?.toISOString(),
+      summary: notes || null,
+      coordinates: location || null,
+      timestamp: new Date(scheduledTime)
+    };
+
+    const visit = await db.visit.create({
+      data: visitData
+    });    const typedVisit = visit as unknown as Visit;
+    const response = {
+      id: typedVisit.id,
+      customerName: typedVisit.customerName,
+      visitType: typedVisit.visitType,
+      scheduledTime: visit.timestamp.toISOString(),
       status: 'pending',
-      location: location,
+      location: visit.coordinates,
       summary: visit.summary,
       createdAt: visit.createdAt.toISOString()
-    });
+    };
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Error creating visit:', error);
     return NextResponse.json(

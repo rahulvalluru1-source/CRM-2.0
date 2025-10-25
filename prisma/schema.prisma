@@ -149,19 +149,21 @@ model Attendance {
 model Visit {
   id            String   @id @default(cuid())
   userId        String
-  customerId    String?
+  customerId    String
   customerName  String
+  visitType     String
   summary       String?
   selfieUrl     String?
   signatureUrl  String?
   rating        Int?
   coordinates   String?
-  timestamp     DateTime @default(now())
+  timestamp     DateTime
   createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // Relations
   user          User     @relation(fields: [userId], references: [id])
-  customer      Customer? @relation(fields: [customerId], references: [id])
+  customer      Customer @relation(fields: [customerId], references: [id])
 
   @@map("visits")
 }

@@ -45,9 +45,15 @@ export default function CreateVisitPage() {
     phone: '',
     company: ''
   });
+  function getCurrentDateTime() {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    return now.toISOString().slice(0, 16);
+  }
+
   const [visitData, setVisitData] = useState({
     visitType: '',
-    scheduledTime: '',
+    scheduledTime: getCurrentDateTime(),
     location: '',
     notes: ''
   });
@@ -131,11 +137,7 @@ export default function CreateVisitPage() {
     }
   };
 
-  const getCurrentDateTime = () => {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    return now.toISOString().slice(0, 16);
-  };
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -208,14 +210,6 @@ export default function CreateVisitPage() {
                             </SelectItem>
                           ))
                         )}
-                      </SelectContent>
-                    </Select>
-                      <SelectContent>
-                        {customers.map((customer) => (
-                          <SelectItem key={customer.id} value={customer.id}>
-                            {customer.name}
-                          </SelectItem>
-                        ))}
                       </SelectContent>
                     </Select>
                     
