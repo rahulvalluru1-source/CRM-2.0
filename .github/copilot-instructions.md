@@ -54,40 +54,50 @@ if (session?.user?.role !== 'ADMIN') {
 ## Project-Specific Conventions
 
 ### API Routes
-- Follow `/api/[entity]/[action]` pattern
-- Return standardized response format:
-  ```typescript
-  { success: boolean, data?: any, error?: string }
-  ```
+## CRM & Field Tracking — Agent Quick Guide
 
-### State Management
-- Auth state: React Context (`contexts/auth-context.tsx`)
-- UI state: Zustand stores
-- Server state: React Query patterns
+Purpose: Give AI coding agents the concrete, repo-specific patterns and commands needed to be productive quickly.
 
-### Error Handling
-- API errors use HTTP status codes
-- Client-side notifications via `useToast` hook
-- Authentication errors redirect to login
+Key architecture (what to know first)
+- App: Next.js App Router under `src/app/` with role-based areas: `admin/`, `employee/`, `crm/`.
+- Server entry: `server.ts` is used in dev/start scripts (dev uses `nodemon` + `tsx` to run `server.ts`).
+- DB: Prisma schema in `prisma/schema.prisma`; prisma client helper is at `src/lib/db.ts`.
+- Auth: NextAuth integration and guards live in `src/lib/auth.ts` and role-protecting layouts like `src/app/admin/layout.tsx`.
+- Real-time: Socket.IO helpers in `src/lib/socket.ts` and example client in `examples/websocket/page.tsx`.
 
-## Integration Points
-- NextAuth.js for authentication (`src/lib/auth.ts`)
-- Socket.io for real-time features (`src/lib/socket.ts`)
-- Prisma for database (`src/lib/db.ts`)
-- shadcn/ui for components (`components/ui/*`)
+Primary developer scripts (from `package.json`)
+- Install: `npm install`
+- Dev (runs `server.ts` and watches): `npm run dev` (writes `dev.log`).
+- Build (Next): `npm run build`; Start prod: `npm start`.
+- Prisma: `npm run db:push`, `npm run db:generate`, `npm run db:migrate`, `npm run db:reset`.
+- Seed: `npm run db:seed` (runs `tsx prisma/seed.ts`) or POST `/api/seed`.
 
-## Common Tasks
-1. **Adding New API Route**
-   - Create in `src/app/api/`
-   - Use Prisma client for DB operations
-   - Follow error handling pattern
+Conventions & patterns to follow
+- API routes: create under `src/app/api/<entity>/...`. Responses follow the shape: `{ success: boolean, data?: any, error?: string }`.
+- DB access: always import the Prisma client from `src/lib/db.ts` to preserve connection handling.
+- Auth guards: enforce role-based redirects in the layout files (see `src/app/admin/layout.tsx` and `src/app/employee/layout.tsx`).
+- UI: shared atomic components live in `components/ui/` (shadcn patterns). Reuse these for consistent styling.
+- State: auth uses `contexts/auth-context.tsx`; lightweight UI state uses Zustand.
 
-2. **Creating New Page**
-   - Place in appropriate role directory
-   - Use layout for auth protection
-   - Follow component composition pattern
+Small contract when modifying server/API
+- Inputs: HTTP request body/params under `src/app/api/*`.
+- Outputs: `{ success, data, error }` JSON + proper HTTP status codes.
+- Errors: surface errors with `error` string and appropriate 4xx/5xx status.
 
-3. **Database Changes**
-   - Update `schema.prisma`
-   - Run `npm run db:push`
-   - Update affected queries
+Quick editing workflow
+1. Update Prisma schema (`prisma/schema.prisma`) → `npm run db:push` → `npm run db:generate`.
+2. If needed, seed with `npm run db:seed` or POST `/api/seed`.
+3. Run `npm run dev` to test changes; check `dev.log` for server output.
+
+Files to inspect for examples
+- Role guards: `src/app/admin/layout.tsx`, `src/app/employee/layout.tsx`
+- DB helper: `src/lib/db.ts`; Prisma schema: `prisma/schema.prisma`
+- Auth: `src/lib/auth.ts`
+- Socket usage: `src/lib/socket.ts`, `examples/websocket/page.tsx`
+- API pattern: any file under `src/app/api/` (follow existing handlers)
+
+Notes / limitations
+- There is no test framework configured in the repo; adding tests should include a package.json update.
+- Follow existing code style and TypeScript types; small edits should preserve public APIs.
+
+If anything here is unclear or you want me to expand an area (e.g., typical request validation, more example API handlers, or a starter PR template), tell me which section to expand.

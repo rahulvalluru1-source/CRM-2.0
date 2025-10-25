@@ -199,6 +199,18 @@ export default function CreateVisitPage() {
                         <SelectValue placeholder="Choose a customer..." />
                       </SelectTrigger>
                       <SelectContent>
+                        {customers.length === 0 ? (
+                          <SelectItem value="" disabled>No customers found</SelectItem>
+                        ) : (
+                          customers.map(customer => (
+                            <SelectItem key={customer.id} value={customer.id}>
+                              {customer.name} {customer.company ? `(${customer.company})` : ''}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                      <SelectContent>
                         {customers.map((customer) => (
                           <SelectItem key={customer.id} value={customer.id}>
                             {customer.name}

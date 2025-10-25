@@ -107,11 +107,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get customer name
+    const customer = await db.customer.findUnique({
+      where: { id: customerId }
+    });
+
+    if (!customer) {
+      return NextResponse.json(
+        { error: 'Customer not found' },
+        { status: 404 }
+      );
+    }
+
     // Create new visit
     const visit = await db.visit.create({
       data: {
         userId: user.id,
         customerId: customerId,
+        customerName: customer.name,
         summary: `${visitType} - ${notes || ''}`,
         coordinates: location,
         timestamp: new Date(scheduledTime),
