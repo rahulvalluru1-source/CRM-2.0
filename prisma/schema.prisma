@@ -48,6 +48,7 @@ model User {
   notifications    Notification[]
   accounts         Account[]
   sessions         Session[]
+  communications   Communication[]
 
   @@map("users")
 }
@@ -121,6 +122,7 @@ model Ticket {
   // Relations
   customer    Customer     @relation(fields: [customerId], references: [id])
   assignedUser User?        @relation(fields: [assignedTo], references: [id])
+  communications Communication[]
 
   @@map("tickets")
 }
@@ -195,6 +197,21 @@ model Notification {
   @@map("notifications")
 }
 
+model Communication {
+  id        String    @id @default(cuid())
+  ticketId  String
+  userId    String
+  message   String
+  internal  Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  
+  // Relations
+  ticket    Ticket    @relation(fields: [ticketId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@map("communications")
+}
+
 enum UserRole {
   ADMIN
   EMPLOYEE
@@ -231,6 +248,9 @@ enum NotificationType {
   CUSTOMER_ADDED
   CUSTOMER_MODIFIED
   ADMIN_BROADCAST
+  VISIT_COMPLETED
+  LOW_RATING
+  PERFORMANCE_ALERT
 }
 
 enum NotificationStatus {

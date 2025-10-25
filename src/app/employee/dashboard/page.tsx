@@ -13,13 +13,13 @@ export default function EmployeeDashboard() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [todayStats, setTodayStats] = useState({
-    checkInTime: "09:00 AM",
+    checkInTime: null,
     checkOutTime: null,
-    activeTickets: 3,
-    visitsToday: 2,
-    weeklyVisits: 12,
-    ticketsClosed: 8,
-    averageRating: 4.5
+    activeTickets: 0,
+    visitsToday: 0,
+    weeklyVisits: 0,
+    ticketsClosed: 0,
+    averageRating: 0
   })
 
   useEffect(() => {
@@ -36,8 +36,31 @@ export default function EmployeeDashboard() {
 
   const fetchEmployeeStats = async () => {
     try {
-      // This will be implemented with actual API calls
-      // Mock data for now
+      const [attendanceRes, ticketsRes, visitsRes] = await Promise.all([
+        fetch('/api/employee/attendance/today'),
+        fetch('/api/tickets/my-tickets'),
+        fetch('/api/employee/visits/stats')
+      ])
+
+      const [attendance, tickets, visits] = await Promise.all([
+        attendanceRes.json(),
+        ticketsRes.json(),
+        visitsRes.json()
+      ])
+
+      if (!attendanceRes.ok) throw new Error(attendance.error)
+      if (!ticketsRes.ok) throw new Error(tickets.error)
+      if (!visitsRes.ok) throw new Error(visits.error)
+
+      setTodayStats({
+        checkInTime: attendance.checkInTime,
+        checkOutTime: attendance.checkOutTime,
+        activeTickets: tickets.active.length,
+        visitsToday: visits.today,
+        weeklyVisits: visits.weekly,
+        ticketsClosed: tickets.closed.length,
+        averageRating: visits.averageRating
+      })
     } catch (error) {
       console.error("Failed to fetch employee stats:", error)
     }

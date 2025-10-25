@@ -12,14 +12,52 @@ import { Users, Ticket, Calendar, MapPin, AlertTriangle, TrendingUp } from "luci
 export default function AdminDashboard() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [stats, setStats] = useState({
-    totalCustomers: 0,
-    activeTickets: 0,
-    openLeads: 0,
-    employeesCheckedIn: 0,
-    visitsToday: 0,
-    fakeGpsAlerts: 0
-  })
+  const [dashboardData, setDashboardData] = useState<{
+    summary: {
+      totalEmployees: number;
+      activeEmployees: number;
+      todayVisits: number;
+      pendingAlerts: number;
+      visitsChange: number;
+      employeesChange: number;
+      activeRate: number;
+    };
+    recentActivity: Array<{
+      id: string;
+      employee: {
+        id: string;
+        name: string;
+        avatar: string | null;
+      };
+      customer: string;
+      subject: string;
+      priority: string;
+      timestamp: string;
+      status: string;
+    }>;
+    latestAlerts: Array<{
+      id: string;
+      type: string;
+      message: string;
+      severity: string;
+      timestamp: string;
+      employee: {
+        id: string;
+        name: string;
+      } | null;
+    }>;
+    employeeStatusBreakdown: {
+      active: number;
+      inactive: number;
+    };
+    attendanceMetrics: {
+      checkedInToday: number;
+      checkedOutToday: number;
+      lateCheckIns: number;
+      totalExpected: number;
+    };
+  } | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     if (status === "loading") return
@@ -35,22 +73,22 @@ export default function AdminDashboard() {
     }
 
     // Fetch dashboard stats
-    fetchStats()
+    fetchDashboardData()
   }, [session, status, router])
 
-  const fetchStats = async () => {
+  const fetchDashboardData = async () => {
     try {
-      // This will be implemented with actual API calls
-      setStats({
-        totalCustomers: 150,
-        activeTickets: 25,
-        openLeads: 12,
-        employeesCheckedIn: 8,
-        visitsToday: 15,
-        fakeGpsAlerts: 2
-      })
+      setIsLoading(true)
+      const response = await fetch('/api/admin/dashboard')
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error)
+      
+      setDashboardData(data)
     } catch (error) {
-      console.error("Failed to fetch stats:", error)
+      console.error("Failed to fetch dashboard data:", error)
+      setDashboardData(null)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -85,53 +123,77 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalCustomers}</div>
-              <p className="text-xs text-muted-foreground">
-                +12% from last month
-              </p>
+              {isLoading ? (
+                <div className="animate-pulse h-8 w-24 bg-gray-200 rounded"></div>
+              ) : (
+                <>
+                  <div className="text-2xl font-bold">{dashboardData?.summary.totalEmployees || 0}</div>
+                  <p className="text-xs text-muted-foreground">
+                    {dashboardData ? `${dashboardData.summary.employeesChange > 0 ? '+' : ''}${dashboardData.summary.employeesChange}% from last month` : 'No change'}
+                  </p>
+                </>
+              )}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Tickets</CardTitle>
+              <CardTitle className="text-sm font-medium">Active Employees</CardTitle>
               <Ticket className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.activeTickets}</div>
-              <p className="text-xs text-muted-foreground">
-                +4 from yesterday
-              </p>
+              {isLoading ? (
+                <div className="animate-pulse h-8 w-24 bg-gray-200 rounded"></div>
+              ) : (
+                <>
+                  <div className="text-2xl font-bold">{dashboardData?.summary.activeEmployees || 0}</div>
+                  <p className="text-xs text-muted-foreground">
+                    {dashboardData ? `${(dashboardData.summary.activeRate * 100).toFixed(1)}% activity rate` : 'No data'}
+                  </p>
+                </>
+              )}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Open Leads</CardTitle>
+              <CardTitle className="text-sm font-medium">Checked In Today</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.openLeads}</div>
-              <p className="text-xs text-muted-foreground">
-                +2 new today
-              </p>
+              {isLoading ? (
+                <div className="animate-pulse h-8 w-24 bg-gray-200 rounded"></div>
+              ) : (
+                <>
+                  <div className="text-2xl font-bold">{dashboardData?.attendanceMetrics.checkedInToday || 0}</div>
+                  <p className="text-xs text-muted-foreground">
+                    out of {dashboardData?.attendanceMetrics.totalExpected || 0} expected
+                  </p>
+                </>
+              )}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Employees Checked In</CardTitle>
+              <CardTitle className="text-sm font-medium">Checked Out Today</CardTitle>
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.employeesCheckedIn}</div>
-              <p className="text-xs text-muted-foreground">
-                Out of 12 total
-              </p>
+              {isLoading ? (
+                <div className="animate-pulse h-8 w-24 bg-gray-200 rounded"></div>
+              ) : (
+                <>
+                  <div className="text-2xl font-bold">{dashboardData?.attendanceMetrics.checkedOutToday || 0}</div>
+                  <p className="text-xs text-muted-foreground">
+                    employees checked out today
+                  </p>
+                </>
+              )}
             </CardContent>
           </Card>
 
@@ -141,23 +203,35 @@ export default function AdminDashboard() {
               <MapPin className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.visitsToday}</div>
-              <p className="text-xs text-muted-foreground">
-                +8 from yesterday
-              </p>
+              {isLoading ? (
+                <div className="animate-pulse h-8 w-24 bg-gray-200 rounded"></div>
+              ) : (
+                <>
+                  <div className="text-2xl font-bold">{dashboardData?.summary.todayVisits || 0}</div>
+                  <p className="text-xs text-muted-foreground">
+                    {dashboardData ? `${dashboardData.summary.visitsChange > 0 ? '+' : ''}${dashboardData.summary.visitsChange} from yesterday` : 'No change'}
+                  </p>
+                </>
+              )}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Fake GPS Alerts</CardTitle>
+              <CardTitle className="text-sm font-medium">Pending Alerts</CardTitle>
               <AlertTriangle className="h-4 w-4 text-destructive" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-destructive">{stats.fakeGpsAlerts}</div>
-              <p className="text-xs text-muted-foreground">
-                Requires attention
-              </p>
+              {isLoading ? (
+                <div className="animate-pulse h-8 w-24 bg-gray-200 rounded"></div>
+              ) : (
+                <>
+                  <div className="text-2xl font-bold text-destructive">{dashboardData?.summary.pendingAlerts || 0}</div>
+                  <p className="text-xs text-muted-foreground">
+                    alerts need attention
+                  </p>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -171,7 +245,7 @@ export default function AdminDashboard() {
                 Common administrative tasks
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <Button 
                   variant="outline" 
@@ -182,20 +256,26 @@ export default function AdminDashboard() {
                   <span>Manage Employees</span>
                 </Button>
                 <Button 
-                  variant="outline" 
+                  variant={dashboardData?.summary?.pendingAlerts && dashboardData.summary.pendingAlerts > 0 ? "destructive" : "outline"}
                   className="h-auto p-4 flex flex-col items-center space-y-2"
-                  onClick={() => router.push("/admin/customers")}
+                  onClick={() => router.push("/admin/alerts")}
                 >
-                  <Users className="h-6 w-6" />
-                  <span>Manage Customers</span>
+                  <AlertTriangle className="h-6 w-6" />
+                  <span>View Alerts</span>
+                  {dashboardData?.summary?.pendingAlerts && dashboardData.summary.pendingAlerts > 0 && (
+                    <Badge variant="secondary">{dashboardData.summary.pendingAlerts} pending</Badge>
+                  )}
                 </Button>
                 <Button 
                   variant="outline" 
                   className="h-auto p-4 flex flex-col items-center space-y-2"
-                  onClick={() => router.push("/admin/tickets")}
+                  onClick={() => router.push("/admin/attendance")}
                 >
-                  <Ticket className="h-6 w-6" />
-                  <span>View All Tickets</span>
+                  <Calendar className="h-6 w-6" />
+                  <span>Attendance Report</span>
+                  {dashboardData?.attendanceMetrics?.lateCheckIns && dashboardData.attendanceMetrics.lateCheckIns > 0 && (
+                    <Badge variant="secondary">{dashboardData.attendanceMetrics.lateCheckIns} late today</Badge>
+                  )}
                 </Button>
                 <Button 
                   variant="outline" 
@@ -203,9 +283,44 @@ export default function AdminDashboard() {
                   onClick={() => router.push("/admin/visits")}
                 >
                   <MapPin className="h-6 w-6" />
-                  <span>View All Visits</span>
+                  <span>Field Visits</span>
+                  {dashboardData?.summary?.todayVisits && dashboardData.summary.todayVisits > 0 && (
+                    <Badge variant="secondary">{dashboardData.summary.todayVisits} today</Badge>
+                  )}
                 </Button>
               </div>
+              
+              {dashboardData?.latestAlerts && dashboardData.latestAlerts.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-muted-foreground">Latest Alerts</h4>
+                  <div className="space-y-2">
+                    {dashboardData.latestAlerts.slice(0, 3).map(alert => (
+                      <div key={alert.id} className="flex items-center justify-between p-2 rounded-lg border bg-background">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-2 h-2 rounded-full ${
+                            alert.severity === 'high' ? 'bg-red-500' :
+                            alert.severity === 'medium' ? 'bg-yellow-500' :
+                            'bg-blue-500'
+                          }`}></div>
+                          <div>
+                            <p className="text-sm font-medium">{alert.message}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {alert.employee?.name || 'System'} • {new Date(alert.timestamp).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                        <Badge variant={
+                          alert.severity === 'high' ? 'destructive' :
+                          alert.severity === 'medium' ? 'secondary' :
+                          'outline'
+                        }>
+                          {alert.type}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -217,8 +332,22 @@ export default function AdminDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="bg-gray-100 rounded-lg h-64 flex items-center justify-center">
-                <p className="text-gray-500">Map integration coming soon</p>
+              <div className="bg-gray-100 rounded-lg h-64 relative">
+                <iframe
+                  src={`https://maps.google.com/maps?q=Your+Location&output=embed`}
+                  className="w-full h-full rounded-lg"
+                  title="Employee Locations"
+                  loading="lazy"
+                />
+                <div className="absolute top-4 right-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.push("/admin/map")}
+                  >
+                    View Full Map
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -234,27 +363,48 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center space-x-4">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">New ticket created</p>
-                  <p className="text-xs text-gray-500">2 minutes ago</p>
+              {isLoading ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex items-center space-x-4">
+                      <div className="w-2 h-2 bg-gray-200 rounded-full"></div>
+                      <div className="flex-1">
+                        <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
-              <div className="flex items-center space-x-4">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Employee checked in</p>
-                  <p className="text-xs text-gray-500">5 minutes ago</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-4">
-                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Fake GPS alert</p>
-                  <p className="text-xs text-gray-500">12 minutes ago</p>
-                </div>
-              </div>
+              ) : dashboardData?.recentActivity.length ? (
+                dashboardData.recentActivity.map((activity) => (
+                  <div key={activity.id} className="flex items-center space-x-4">
+                    <div className={`w-2 h-2 rounded-full ${
+                      activity.priority === 'high' ? 'bg-red-500' :
+                      activity.priority === 'medium' ? 'bg-yellow-500' :
+                      'bg-blue-500'
+                    }`}></div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{activity.subject}</p>
+                      <div className="flex items-center text-xs text-gray-500 space-x-2">
+                        <span>{activity.employee.name}</span>
+                        <span>•</span>
+                        <span>{activity.customer}</span>
+                        <span>•</span>
+                        <span>{new Date(activity.timestamp).toLocaleString()}</span>
+                      </div>
+                    </div>
+                    <Badge variant={
+                      activity.status === 'completed' ? 'default' :
+                      activity.status === 'pending' ? 'secondary' :
+                      'outline'
+                    }>
+                      {activity.status}
+                    </Badge>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500">No recent activities</p>
+              )}
             </div>
           </CardContent>
         </Card>
