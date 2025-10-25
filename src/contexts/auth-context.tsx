@@ -1,27 +1,25 @@
 import { Session } from "next-auth"
-import { createContext, useContext, useEffect, useState } from "react"
+import { useSession } from "next-auth/react"
+import { createContext, useContext } from "react"
 
 interface AuthContextType {
   session: Session | null
   loading: boolean
+  status: "authenticated" | "loading" | "unauthenticated"
 }
 
 const AuthContext = createContext<AuthContextType>({
   session: null,
   loading: true,
+  status: "loading"
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    // This will be implemented with NextAuth hooks
-    setLoading(false)
-  }, [])
+  const { data: session, status } = useSession()
+  const loading = status === "loading"
 
   return (
-    <AuthContext.Provider value={{ session, loading }}>
+    <AuthContext.Provider value={{ session, loading, status }}>
       {children}
     </AuthContext.Provider>
   )

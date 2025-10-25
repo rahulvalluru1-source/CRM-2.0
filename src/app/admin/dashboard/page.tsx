@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { AdminNavigation } from "@/components/admin-navigation"
 import { Users, Ticket, Calendar, MapPin, AlertTriangle, TrendingUp } from "lucide-react"
+import LocationTracker from "@/components/location-tracker"
 
 export default function AdminDashboard() {
   const { data: session, status } = useSession()
@@ -332,22 +333,15 @@ export default function AdminDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="bg-gray-100 rounded-lg h-64 relative">
-                <iframe
-                  src={`https://maps.google.com/maps?q=Your+Location&output=embed`}
-                  className="w-full h-full rounded-lg"
-                  title="Employee Locations"
-                  loading="lazy"
-                />
-                <div className="absolute top-4 right-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => router.push("/admin/map")}
-                  >
-                    View Full Map
-                  </Button>
-                </div>
+              <LocationTracker height="300px" />
+              <div className="mt-4 flex justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push("/admin/map")}
+                >
+                  View Full Map
+                </Button>
               </div>
             </CardContent>
           </Card>
