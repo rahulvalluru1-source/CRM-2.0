@@ -43,43 +43,52 @@ export default function LoginPage() {
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     
     if (!validateForm()) {
-      return
+      return;
     }
     
-    setLoading(true)
-    setErrors({})
+    setLoading(true);
+    setErrors({});
 
     try {
       const result = await signIn("credentials", {
         email,
         password,
         redirect: false,
-      })
+      });
 
-      if (result?.error) {
-        // Handle specific error messages
-        if (result.error.includes("inactive")) {
-          toast.error("Account is inactive. Please contact administrator.")
-          setErrors({ email: "Account is inactive" })
-        } else {
-          toast.error("Invalid credentials. Please check your email and password.")
-          setErrors({ password: "Invalid credentials" })
-        }
+      if (!result?.ok) {
+        throw new Error(result?.error || 'Failed to sign in');
+      }
+
+      // Get updated session after successful sign in
+      const res = await fetch('/api/auth/session');
+      const session = await res.json();
+
+      if (!session?.user) {
+        throw new Error('No session found after login');
+      }
+
+      // Role-based redirect
+      toast.success("Login successful! Redirecting...");
+      
+      if (session.user.role === 'ADMIN') {
+        router.push('/admin/dashboard');
+      } else if (session.user.role === 'EMPLOYEE') {
+        router.push('/employee/dashboard');
       } else {
-        toast.success("Login successful! Redirecting...")
-        // Redirect will be handled by the dashboard component based on role
-        setTimeout(() => {
-          router.push("/dashboard")
-        }, 1000)
+        throw new Error('Invalid user role');
       }
     } catch (error) {
-      toast.error("An error occurred during login. Please try again.")
-      setErrors({ password: "Login failed. Please try again." })
+      const errorMessage = error instanceof Error ? error.message : "An error occurred during login";
+      toast.error(errorMessage);
+      setErrors({ 
+        password: errorMessage.includes("credentials") ? "Invalid credentials" : "Login failed. Please try again." 
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 

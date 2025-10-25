@@ -8,14 +8,15 @@ export const authOptions: NextAuthOptions = {
   debug: process.env.NODE_ENV === 'development',
   providers: [
     CredentialsProvider({
-      name: "credentials",
+      id: "credentials",
+      name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          return null
+          throw new Error("Email and password are required")
         }
 
         try {
@@ -25,7 +26,7 @@ export const authOptions: NextAuthOptions = {
           })
 
           if (!user) {
-            return null
+            throw new Error("Invalid credentials")
           }
 
           // Check if account is active
@@ -37,7 +38,7 @@ export const authOptions: NextAuthOptions = {
           const isPasswordValid = await bcrypt.compare(credentials.password, user.password || "")
           
           if (!isPasswordValid) {
-            return null
+            throw new Error("Invalid credentials")
           }
 
           // Update last login time
@@ -49,7 +50,7 @@ export const authOptions: NextAuthOptions = {
           return {
             id: user.id,
             email: user.email,
-            name: user.name,
+            name: user.name || "",
             role: user.role,
           }
         } catch (error) {
@@ -59,6 +60,11 @@ export const authOptions: NextAuthOptions = {
       }
     })
   ],
+  pages: {
+    signIn: '/login',
+    signOut: '/login',
+    error: '/login',
+  },
   session: {
     strategy: "jwt",
     maxAge: 24 * 60 * 60, // 24 hours
@@ -66,17 +72,24 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.role = user.role
+        token.id = user.id;
+        token.role = user.role;
+        token.email = user.email;
+        token.name = user.name;
       }
-      return token
+      return token;
     },
     async session({ session, token }) {
       if (token) {
-        session.user.id = token.sub!
-        session.user.role = token.role as string
+        session.user = {
+          id: token.id as string,
+          role: token.role as "ADMIN" | "EMPLOYEE",
+          email: token.email as string,
+          name: token.name
+        };
       }
-      return session
-    }
+      return session;
+    },
   },
   pages: {
     signIn: "/login",

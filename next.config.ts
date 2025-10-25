@@ -4,9 +4,14 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  reactStrictMode: true,
+  reactStrictMode: false,
   output: "standalone",
   outputFileTracingRoot: __dirname,
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '2mb'
+    }
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -15,4 +20,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
