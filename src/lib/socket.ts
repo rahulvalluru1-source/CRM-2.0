@@ -18,6 +18,20 @@ interface NextApiResponseWithSocket extends NextApiResponse {
 
 let io: SocketIOServer | null = null
 
+export function setupSocket(server: HTTPServer) {
+  if (io) return io
+
+  io = new SocketIOServer(server, {
+    path: '/api/socketio',
+  })
+
+  io.on('connection', (socket) => {
+    console.log('Socket connected:', socket.id)
+  })
+
+  return io
+}
+
 export const initializeSocket = (req: NextApiRequest, res: NextApiResponseWithSocket) => {
   if (!res.socket.server.io) {
     io = new SocketIOServer(res.socket.server)

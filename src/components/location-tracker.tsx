@@ -47,7 +47,7 @@ export default function LocationTracker({ height = '400px', showFullMap = false,
 
   useEffect(() => {
     // Connect to WebSocket for real-time updates
-    const socket = new WebSocket(process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3000')
+    const socket = new WebSocket(process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:4000')
 
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data)
